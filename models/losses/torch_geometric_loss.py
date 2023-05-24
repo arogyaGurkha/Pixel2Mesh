@@ -85,17 +85,17 @@ def geometric_loss(gt_points: torch.tensor, pred_points: torch.tensor, height: i
 
             # print(f"rotation vector is: ", rvec)
 
-            gt_normal = torch_normalize(gt_points)
-            gt_focal = torch_focal(gt_normal, height, width)
-            gt_pm = torch_matrix(gt_focal, height, width)
-            gt_projection = torch_project_3D_to_2D(gt_normal, rvec, gt_pm)
+            gt_normal = normalize_3D(gt_points)
+            gt_focal = calculate_focal(gt_normal, height, width)
+            gt_pm = project_matrix(gt_focal, height, width)
+            gt_projection = project_3D_to_2D(gt_normal, rvec, gt_pm)
 
-            pred_normal = torch_normalize(pred_points)
-            pred_focal = torch_focal(pred_normal, height, width)
-            pred_pm = torch_matrix(pred_focal, height, width)
-            pred_projection = torch_project_3D_to_2D(pred_normal, rvec, pred_pm)
+            pred_normal = normalize_3D(pred_points)
+            pred_focal = calculate_focal(pred_normal, height, width)
+            pred_pm = project_matrix(pred_focal, height, width)
+            pred_projection = project_3D_to_2D(pred_normal, rvec, pred_pm)
 
-            loss = torch_calculate_loss(gt_projection, pred_projection, height, width, l2_loss)
+            loss = calculate_loss(gt_projection, pred_projection, height, width, l2_loss)
             total_loss += loss
 
         return total_loss.item()
