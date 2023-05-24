@@ -6,10 +6,10 @@ import cv2
 
 def normalize_3D(points: torch.tensor):
     centroid = torch.mean(points)
-    points -= centroid
+    points = points - centroid
     distances = torch.linalg.norm(points, dim=1)
     maximum_extent = torch.max(distances)
-    points /= maximum_extent
+    points = points / maximum_extent
     return points
 
 
