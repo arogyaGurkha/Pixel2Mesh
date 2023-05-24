@@ -2,6 +2,7 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 from pyemd import emd
+import numpy as np
 from models.layers.chamfer_wrapper import ChamferDist
 
 
@@ -25,12 +26,24 @@ class P2MLoss(nn.Module):
         :param gt: batch_size * num_points * 3
         :return: emd
         """
-        batch_size, num_points, _ = pred.size()
+        #print(type(pred))
+        #print(type(gt))
+        batch_size = len(pred)
+        num_points = 3
         emd_loss = 0
+        distance_matrix = np.array([
+            [0.0, 0.0,1.0], [0.0, 1.0,0.0],[1.0,0.0,0.0]
+        ])
         for i in range(batch_size):
-            emd_loss += emd(pred[i].view(-1).detach().cpu().numpy(),
-                            gt[i].view(-1).detach().cpu().numpy(),
-                            num_points)
+            print(len(pred[i]))
+            #print(pred[i].detach().cpu().numpy())
+            #print( gt[i].detach().cpu().numpy())\
+            for j in range(len(pred[i])):
+                emd_loss += emd(np.float64(pred[i][j].view(-1).detach().cpu().numpy()),
+                                np.float64(gt[i][j].view(-1).detach().cpu().numpy()),
+                                distance_matrix)
+                emd_loss /= len(pred[i])
+        print(emd_loss/batch_size)
         return emd_loss / batch_size
 
     def edge_regularization(self, pred, edges):
@@ -107,6 +120,8 @@ class P2MLoss(nn.Module):
         image_loss = 0.
         if outputs["reconst"] is not None and self.options.weights.reconst != 0:
             image_loss = self.image_loss(gt_images, outputs["reconst"])
+
+
 
         for i in range(3):
             dist1, dist2, idx1, idx2 = self.chamfer_dist(gt_coord, pred_coord[i])
