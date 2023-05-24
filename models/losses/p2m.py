@@ -1,10 +1,8 @@
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-from pyemd import emd
-import numpy as np
 from models.layers.chamfer_wrapper import ChamferDist
-
+from geometric_loss import geometric_loss
 
 class P2MLoss(nn.Module):
     def __init__(self, options, ellipsoid):
@@ -19,33 +17,7 @@ class P2MLoss(nn.Module):
             nn.Parameter(edges, requires_grad=False) for edges in ellipsoid.edges])
         
 
-    #define the edm_loss function
-    def emd_loss(self, pred, gt):
-        """
-        :param pred: batch_size * num_points * 3
-        :param gt: batch_size * num_points * 3
-        :return: emd
-        """
-        #print(type(pred))
-        #print(type(gt))
-        batch_size = len(pred)
-        num_points = 3
-        emd_loss = 0
-        distance_matrix = np.array([
-            [0.0, 0.0,1.0], [0.0, 1.0,0.0],[1.0,0.0,0.0]
-        ])
-        for i in range(batch_size):
-            #print(len(pred[i]))
-            #print(pred[i].detach().cpu().numpy())
-            #print( gt[i].detach().cpu().numpy())\
-            for j in range(len(pred[i])):
-                emd_loss += emd(np.float64(pred[i][j].view(-1).detach().cpu().numpy()),
-                                np.float64(gt[i][j].view(-1).detach().cpu().numpy()),
-                                distance_matrix)
-                emd_loss /= len(pred[i])
-        #print(emd_loss/batch_size)
-        return emd_loss / batch_size
-
+ 
     def edge_regularization(self, pred, edges):
         """
         :param pred: batch_size * num_points * 3
@@ -105,6 +77,9 @@ class P2MLoss(nn.Module):
         rect_loss = F.binary_cross_entropy(pred_img, gt_img)
         return rect_loss
 
+    def geometric_loss(self, gt_points, pred_points, height, width):
+        return geometric_loss(gt_points, pred_points, height, width)
+
     def forward(self, outputs, targets):
         """
         :param outputs: outputs from P2MModel
@@ -113,6 +88,10 @@ class P2MLoss(nn.Module):
         """
 
         chamfer_loss, edge_loss, normal_loss, lap_loss, move_loss, emd_loss_value = 0., 0., 0., 0., 0., 0.
+
+        g_loss = 0.
+        height, width = 192, 256
+
         lap_const = [0.2, 1., 1.]
 
         gt_coord, gt_normal, gt_images = targets["points"], targets["normals"], targets["images"]
@@ -120,8 +99,6 @@ class P2MLoss(nn.Module):
         image_loss = 0.
         if outputs["reconst"] is not None and self.options.weights.reconst != 0:
             image_loss = self.image_loss(gt_images, outputs["reconst"])
-
-
 
         for i in range(3):
             dist1, dist2, idx1, idx2 = self.chamfer_dist(gt_coord, pred_coord[i])
@@ -135,16 +112,17 @@ class P2MLoss(nn.Module):
             lap_loss += lap_const[i] * lap
             move_loss += lap_const[i] * move
 
-            # compute EDM_loss and add to overall loss
-            emd = self.emd_loss(pred_coord[i], gt_coord)
-            emd_loss_value += emd * self.options.weights.emd
+            # compute geometric loss
+            g_loss += self.geometric_loss(gt_coord, pred_coord, height, width)
 
         loss = chamfer_loss + image_loss * self.options.weights.reconst + \
                self.options.weights.laplace * lap_loss + \
                self.options.weights.move * move_loss + \
                self.options.weights.edge * edge_loss + \
                self.options.weights.normal * normal_loss + \
-               emd_loss_value  # add EDM_loss to overall loss
+               g_loss # add geometric loss
+
+
 
         loss = loss * self.options.weights.constant
 
@@ -155,7 +133,6 @@ class P2MLoss(nn.Module):
             "loss_laplace": lap_loss,
             "loss_move": move_loss,
             "loss_normal": normal_loss,
-            "loss_emd": emd_loss_value,  # include EMD_loss in loss_summary
+            "loss_GAL": g_loss,  
         }
-
 
