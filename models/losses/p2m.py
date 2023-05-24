@@ -2,7 +2,7 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 from models.layers.chamfer_wrapper import ChamferDist
-from models.losses.geometric_loss import geometric_loss
+from models.losses.torch_geometric_loss import geometric_loss
 from pyemd import emd
 
 class P2MLoss(nn.Module):
@@ -132,9 +132,9 @@ class P2MLoss(nn.Module):
             move_loss += lap_const[i] * move
             # compute geometric loss
            
-            #g_loss += self.geometric_loss(gt_coord.detach().cpu().numpy(), pred_coord[i].detach().cpu().numpy(), height, width)
+            g_loss += self.geometric_loss(gt_coord, pred_coord[i], height, width)
 
-            emd_loss +=self.emd_loss(pred_coord[i], gt_coord) * self.options.weights.emd
+           # emd_loss +=self.emd_loss(pred_coord[i], gt_coord) * self.options.weights.emd
         loss = chamfer_loss + image_loss * self.options.weights.reconst + \
                self.options.weights.laplace * lap_loss + \
                self.options.weights.move * move_loss + \
