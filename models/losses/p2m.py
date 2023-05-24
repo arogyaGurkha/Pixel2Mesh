@@ -18,9 +18,7 @@ class P2MLoss(nn.Module):
             nn.Parameter(idx, requires_grad=False) for idx in ellipsoid.laplace_idx])
         self.edges = nn.ParameterList([
             nn.Parameter(edges, requires_grad=False) for edges in ellipsoid.edges])
-        
 
- 
     def edge_regularization(self, pred, edges):
         """
         :param pred: batch_size * num_points * 3
@@ -80,14 +78,14 @@ class P2MLoss(nn.Module):
         rect_loss = F.binary_cross_entropy(pred_img, gt_img)
         return rect_loss
 
-    #define the edm_loss function
+    # define the edm_loss function
     def emd_loss(self, pred, gt):
         """
         :param pred: batch_size * num_points * 3
         :param gt: batch_size * num_points * 3
         :return: emd
         """
-        batch_size  = 8
+        batch_size = 8
         num_points = len(pred[i])
         emd_loss = 0
         for i in range(batch_size):
@@ -95,8 +93,6 @@ class P2MLoss(nn.Module):
                             gt[i].view(-1).detach().cpu().numpy(),
                             num_points)
         return emd_loss / batch_size
-
-
 
     def geometric_loss(self, gt_points, pred_points, height, width):
         return geometric_loss(gt_points, pred_points, height, width)
@@ -127,29 +123,27 @@ class P2MLoss(nn.Module):
         for i in range(3):
             dist1, dist2, idx1, idx2 = self.chamfer_dist(gt_coord, pred_coord[i])
             chamfer_loss += self.options.weights.chamfer[i] * (torch.mean(dist1) +
-                                                               self.options.weights.chamfer_opposite * torch.mean(dist2))
-            
+                                                               self.options.weights.chamfer_opposite * torch.mean(
+                        dist2))
+
             normal_loss += self.normal_loss(gt_normal, idx2, pred_coord[i], self.edges[i])
             edge_loss += self.edge_regularization(pred_coord[i], self.edges[i])
             lap, move = self.laplace_regularization(pred_coord_before_deform[i],
-                                                                   pred_coord[i], i)
+                                                    pred_coord[i], i)
             lap_loss += lap_const[i] * lap
             move_loss += lap_const[i] * move
             # compute geometric loss
-           
+
             g_loss += self.geometric_loss(gt_coord, pred_coord[i], height, width)
 
-           # emd_loss +=self.emd_loss(pred_coord[i], gt_coord) * self.options.weights.emd
+        # emd_loss +=self.emd_loss(pred_coord[i], gt_coord) * self.options.weights.emd
 
         loss = chamfer_loss + image_loss * self.options.weights.reconst + \
                self.options.weights.laplace * lap_loss + \
                self.options.weights.move * move_loss + \
                self.options.weights.edge * edge_loss + \
                self.options.weights.normal * normal_loss + \
-
-               emd_loss + g_loss # add geometric loss
-
-
+               emd_loss + g_loss  # add geometric loss
 
         loss = loss * self.options.weights.constant
 
@@ -160,7 +154,6 @@ class P2MLoss(nn.Module):
             "loss_laplace": lap_loss,
             "loss_move": move_loss,
             "loss_normal": normal_loss,
-            "loss_GAL": g_loss,  
-            "loss_EMD": emd_loss,  
+            "loss_GAL": g_loss,
+            "loss_EMD": emd_loss,
         }
-

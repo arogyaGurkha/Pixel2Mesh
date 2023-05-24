@@ -44,7 +44,6 @@ def project_3D_to_2D(points: torch.tensor, rvec: torch.tensor, camera_matrix: np
     return torch.from_numpy(image_points)
 
 
-
 def find_pixels(points: torch.tensor, height: int, width: int):
     pixels = torch.zeros((height, width))
 
@@ -61,6 +60,7 @@ def find_pixels(points: torch.tensor, height: int, width: int):
 
     return pixels
 
+
 def calculate_loss(gt_points: torch.tensor, pred_points: torch.tensor, height: int, width: int, l2_loss):
     gt_points = torch.round(gt_points)
     gt_points = gt_points.reshape(-1, 2)
@@ -68,10 +68,8 @@ def calculate_loss(gt_points: torch.tensor, pred_points: torch.tensor, height: i
     pred_points = torch.round(pred_points)
     pred_points = pred_points.reshape(-1, 2)
 
-
     gt_pixels = find_pixels(gt_points, height, width)
     pred_pixels = find_pixels(pred_points, height, width)
-
 
     loss = l2_loss(gt_pixels, pred_pixels)
     return loss
@@ -80,22 +78,24 @@ def calculate_loss(gt_points: torch.tensor, pred_points: torch.tensor, height: i
 def geometric_loss(gt_points: torch.tensor, pred_points: torch.tensor, height: int, width: int):
     total_loss = 0
     l2_loss = torch.nn.MSELoss()
-    for views in range(3):
-        rvec = np.random.randint(low=0, high=2 * 3.14, size=(3,)).astype(np.float64)
 
-        # print(f"rotation vector is: ", rvec)
+    for copies in range(len(gt_points)):
+        for views in range(3):
+            rvec = np.random.randint(low=0, high=2 * 3.14, size=(3,)).astype(np.float64)
 
-        gt_normal = torch_normalize(gt_points)
-        gt_focal = torch_focal(gt_normal, height, width)
-        gt_pm = torch_matrix(gt_focal, height, width)
-        gt_projection = torch_project_3D_to_2D(gt_normal, rvec, gt_pm)
+            # print(f"rotation vector is: ", rvec)
 
-        pred_normal = torch_normalize(pred_points)
-        pred_focal = torch_focal(pred_normal, height, width)
-        pred_pm = torch_matrix(pred_focal, height, width)
-        pred_projection = torch_project_3D_to_2D(pred_normal, rvec, pred_pm)
+            gt_normal = torch_normalize(gt_points)
+            gt_focal = torch_focal(gt_normal, height, width)
+            gt_pm = torch_matrix(gt_focal, height, width)
+            gt_projection = torch_project_3D_to_2D(gt_normal, rvec, gt_pm)
 
-        loss = torch_calculate_loss(gt_projection, pred_projection, height, width, l2_loss)
-        total_loss += loss
+            pred_normal = torch_normalize(pred_points)
+            pred_focal = torch_focal(pred_normal, height, width)
+            pred_pm = torch_matrix(pred_focal, height, width)
+            pred_projection = torch_project_3D_to_2D(pred_normal, rvec, pred_pm)
 
-    return total_loss.item()
+            loss = torch_calculate_loss(gt_projection, pred_projection, height, width, l2_loss)
+            total_loss += loss
+
+        return total_loss.item()
