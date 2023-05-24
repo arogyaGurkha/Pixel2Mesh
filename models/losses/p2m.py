@@ -85,7 +85,8 @@ class P2MLoss(nn.Module):
         :param gt: batch_size * num_points * 3
         :return: emd
         """
-        batch_size, num_points, _ = pred.size()
+        batch_size  = 8
+        num_points = len(pred[i])
         emd_loss = 0
         for i in range(batch_size):
             emd_loss += emd(pred[i].view(-1).detach().cpu().numpy(),
