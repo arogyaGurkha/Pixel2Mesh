@@ -43,6 +43,7 @@ def project_3D_to_2D(points: np.array, rvec: np.array, camera_matrix: np.array):
     return image_points.astype(np.float64)
 
 
+
 def calculate_loss(gt_points: np.array, pred_points: np.array, height: int, width: int):
     gt_points = np.rint(gt_points)
     pred_points = np.rint(pred_points)
