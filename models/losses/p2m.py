@@ -35,7 +35,7 @@ class P2MLoss(nn.Module):
             [0.0, 0.0,1.0], [0.0, 1.0,0.0],[1.0,0.0,0.0]
         ])
         for i in range(batch_size):
-            print(len(pred[i]))
+            #print(len(pred[i]))
             #print(pred[i].detach().cpu().numpy())
             #print( gt[i].detach().cpu().numpy())\
             for j in range(len(pred[i])):
@@ -43,7 +43,7 @@ class P2MLoss(nn.Module):
                                 np.float64(gt[i][j].view(-1).detach().cpu().numpy()),
                                 distance_matrix)
                 emd_loss /= len(pred[i])
-        print(emd_loss/batch_size)
+        #print(emd_loss/batch_size)
         return emd_loss / batch_size
 
     def edge_regularization(self, pred, edges):
