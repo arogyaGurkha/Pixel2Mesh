@@ -112,8 +112,9 @@ class P2MLoss(nn.Module):
             lap_loss += lap_const[i] * lap
             move_loss += lap_const[i] * move
             # compute geometric loss
-            g_loss += self.geometric_loss(gt_coord[i].detach().cpu().numpy(), pred_coord[i].detach().cpu().numpy(), height, width)
-
+            tmp = 0.   
+            tmp += self.geometric_loss(gt_coord.detach().cpu().numpy(), pred_coord[i].detach().cpu().numpy(), height, width)
+            g_loss += tmp
         loss = chamfer_loss + image_loss * self.options.weights.reconst + \
                self.options.weights.laplace * lap_loss + \
                self.options.weights.move * move_loss + \
