@@ -54,8 +54,8 @@ def find_pixels(points: torch.tensor, height: int, width: int):
 
     mask = (points[:, 0] >= x_min) & (points[:, 0] <= x_max) & (points[:, 1] >= y_min) & (
             points[:, 1] <= y_max)
-    x_indices = (points[mask, 0] + x_max - 1).to(torch.int)
-    y_indices = (points[mask, 1] + y_max - 1).to(torch.int)
+    x_indices = (points[mask, 0] + x_max - 1).to(torch.long)
+    y_indices = (points[mask, 1] + y_max - 1).to(torch.long)
     pixels[x_indices, y_indices] = 1
 
     return pixels
