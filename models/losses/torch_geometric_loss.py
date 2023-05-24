@@ -44,6 +44,23 @@ def project_3D_to_2D(points: torch.tensor, rvec: torch.tensor, camera_matrix: np
     return torch.from_numpy(image_points)
 
 
+def find_pixels(points: torch.tensor, height: int, width: int):
+    pixels = torch.zeros((height, width))
+
+    x_min = -height // 2
+    x_max = height // 2
+    y_min = -width // 2
+    y_max = width // 2
+
+    mask = (points[:, 0] >= x_min) & (points[:, 0] <= x_max) & (points[:, 1] >= y_min) & (
+            points[:, 1] <= y_max)
+    x_indices = (points[mask, 0] + x_max - 1).to(torch.int)
+    y_indices = (points[mask, 1] + y_max - 1).to(torch.int)
+    pixels[x_indices, y_indices] = 1
+
+    return pixels
+
+
 def calculate_loss(gt_points: torch.tensor, pred_points: torch.tensor, height: int, width: int, l2_loss):
     gt_points = torch.round(gt_points)
     gt_points = gt_points.reshape(-1, 2)
@@ -51,27 +68,8 @@ def calculate_loss(gt_points: torch.tensor, pred_points: torch.tensor, height: i
     pred_points = torch.round(pred_points)
     pred_points = pred_points.reshape(-1, 2)
 
-    gt_pixels = torch.zeros((height, width))
-    pred_pixels = torch.zeros((height, width))
-
-    x_min = -192 // 2
-    x_max = 192 // 2
-    y_min = -256 // 2
-    y_max = 256 // 2
-
-    # Find gt pixels
-    mask = (gt_points[:, 0] >= x_min) & (gt_points[:, 0] <= x_max) & (gt_points[:, 1] >= y_min) & (
-                gt_points[:, 1] <= y_max)
-    x_indices = (gt_points[mask, 0] + x_max - 1).to(torch.int)
-    y_indices = (gt_points[mask, 1] + y_max - 1).to(torch.int)
-    gt_pixels[x_indices, y_indices] = 1
-
-    # Find pred pixels
-    mask = (pred_points[:, 0] >= x_min) & (pred_points[:, 0] <= x_max) & (pred_points[:, 1] >= y_min) & (
-                pred_points[:, 1] <= y_max)
-    x_indices = (pred_points[mask, 0] + x_max - 1).to(torch.int)
-    y_indices = (pred_points[mask, 1] + y_max - 1).to(torch.int)
-    pred_pixels[x_indices, y_indices] = 1
+    gt_pixels = find_pixels(gt_points, height, width)
+    pred_pixels = find_pixels(pred_points, height, width)
 
     loss = l2_loss(gt_pixels, pred_pixels)
     return loss
@@ -82,7 +80,7 @@ def geometric_loss(gt_points: torch.tensor, pred_points: torch.tensor, height: i
     l2_loss = torch.nn.MSELoss()
     for views in range(3):
         rvec = np.random.randint(low=0, high=2 * 3.14, size=(3,)).astype(np.float64)
-        #print(f"rotation vector is: ", rvec)
+        # print(f"rotation vector is: ", rvec)
 
         gt_normal = torch_normalize(gt_points)
         gt_focal = torch_focal(gt_normal, height, width)
