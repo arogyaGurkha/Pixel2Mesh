@@ -62,6 +62,8 @@ def calculate_loss(gt_points: np.array, pred_points: np.array, height: int, widt
 
 def geometric_loss(gt_points: np.array, pred_points: np.array, height: int, width: int):
     total_loss = 0
+    print(gt_points)
+    print(pred_points)
     for views in range(3):
         rvec = np.random.randint(low=0, high=2 * 3.14, size=(3,)).astype(np.float32)
         print(f"rotation vector is: ", rvec)
