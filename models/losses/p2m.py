@@ -2,7 +2,7 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 from models.layers.chamfer_wrapper import ChamferDist
-from geometric_loss import geometric_loss
+from models.losses.geometric_loss import geometric_loss
 
 class P2MLoss(nn.Module):
     def __init__(self, options, ellipsoid):
