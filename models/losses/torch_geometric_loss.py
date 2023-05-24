@@ -61,7 +61,7 @@ def find_pixels(points: torch.tensor, height: int, width: int):
     return pixels
 
 
-def calculate_loss(gt_points: torch.tensor, pred_points: torch.tensor, height: int, width: int, l2_loss):
+def calculate_loss(gt_points: torch.tensor, pred_points: torch.tensor, height: int, width: int):
     gt_points = torch.round(gt_points)
     gt_points = gt_points.reshape(-1, 2)
 
@@ -71,31 +71,30 @@ def calculate_loss(gt_points: torch.tensor, pred_points: torch.tensor, height: i
     gt_pixels = find_pixels(gt_points, height, width)
     pred_pixels = find_pixels(pred_points, height, width)
 
-    loss = l2_loss(gt_pixels, pred_pixels)
+    loss = torch.mean(torch.square(gt_pixels - pred_pixels))
     return loss
 
 
 def geometric_loss(gt_points: torch.tensor, pred_points: torch.tensor, height: int, width: int):
     total_loss = 0
-    l2_loss = torch.nn.MSELoss()
 
-    for copies in range(len(gt_points)):
+    for replication in range(len(gt_points)):
         for views in range(3):
             rvec = np.random.randint(low=0, high=2 * 3.14, size=(3,)).astype(np.float64)
 
             # print(f"rotation vector is: ", rvec)
 
-            gt_normal = normalize_3D(gt_points)
+            gt_normal = normalize_3D(gt_points[replication])
             gt_focal = calculate_focal(gt_normal, height, width)
             gt_pm = project_matrix(gt_focal, height, width)
             gt_projection = project_3D_to_2D(gt_normal, rvec, gt_pm)
 
-            pred_normal = normalize_3D(pred_points)
+            pred_normal = normalize_3D(pred_points[replication])
             pred_focal = calculate_focal(pred_normal, height, width)
             pred_pm = project_matrix(pred_focal, height, width)
             pred_projection = project_3D_to_2D(pred_normal, rvec, pred_pm)
 
-            loss = calculate_loss(gt_projection, pred_projection, height, width, l2_loss)
+            loss = calculate_loss(gt_projection, pred_projection, height, width)
             total_loss += loss
 
         return total_loss.item()
